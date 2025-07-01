@@ -1,10 +1,10 @@
-﻿using System;
+﻿using Microsoft.Win32;
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Windows;
 using System.Windows.Input;
-using Microsoft.Win32;
 using Drawing = System.Drawing;
 using Forms = System.Windows.Forms;
 
@@ -18,7 +18,8 @@ namespace AutoZapert
 
         public MainWindow()
         {
-            try {
+            try
+            {
                 InitializeComponent();
 
                 if (!IsAdministrator())
@@ -41,7 +42,7 @@ namespace AutoZapert
                 MessageBox.Show("Ошибка в конструкторе MainWindow:\n" + ex.ToString(), "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                 throw;
             }
-            
+
         }
 
         private void OnSessionEnding(object sender, SessionEndingEventArgs e)
@@ -102,19 +103,30 @@ namespace AutoZapert
             string baseDir = AppDomain.CurrentDomain.BaseDirectory;
             string binDir = Path.Combine(baseDir, @"zapret\bin");
             string listDir = Path.Combine(baseDir, @"Resources");
-            string exePath = Path.Combine(binDir, @"winws.exe");
-            string listGeneral = Path.Combine(listDir, @"list-general.txt");
-            string ipsetCloudflare = Path.Combine(listDir, @"ipset-cloudflare.txt");
-            string quicFile = Path.Combine(binDir, @"quic_initial_www_google_com.bin");
 
+            string exePath = Path.Combine(binDir, @"winws.exe");
+            string quicFile = Path.Combine(binDir, @"quic_initial_www_google_com.bin");
+            string tlsPattern = Path.Combine(binDir, @"tls_clienthello_www_google_com.bin");
+            string gameFilterFile = Path.Combine(binDir, @"game_filter.enabled");
+
+            string listGeneral = Path.Combine(listDir, @"list-general.txt");
+            string ipsetAll = Path.Combine(listDir, @"ipset-all.txt");
+
+            bool isGameFilterEnabled = File.Exists(gameFilterFile);
+            string gameFilter = isGameFilterEnabled ? "27015,28960" : ""; //нужные порты здесь
+
+            string wfTcp = $"--wf-tcp=80,443" + (isGameFilterEnabled ? $",{gameFilter}" : "");
+            string wfUdp = $"--wf-udp=443,50000-50100" + (isGameFilterEnabled ? $",{gameFilter}" : "");
             // ✅ Обновляем TextBox на форме
             TextBox1.Text = baseDir;
             TextBox1.Text += "\n" + binDir;
             TextBox1.Text += "\n" + listDir;
             TextBox1.Text += "\n" + exePath;
-            TextBox1.Text += "\n" + listGeneral;
-            TextBox1.Text += "\n" + ipsetCloudflare;
             TextBox1.Text += "\n" + quicFile;
+            TextBox1.Text += "\n" + tlsPattern;
+            TextBox1.Text += "\n" + gameFilterFile;
+            TextBox1.Text += "\n" + listGeneral;
+            TextBox1.Text += "\n" + ipsetAll;
             if (!File.Exists(exePath))
             {
                 Forms.MessageBox.Show("winws.exe не найден!");
@@ -122,21 +134,67 @@ namespace AutoZapert
             }
 
             string args = string.Join(" ", new[]
-            {
-                "--wf-tcp=80,443", "--wf-udp=443,50000-50100",
-                "--filter-udp=443", $"--hostlist=\"{listGeneral}\"", "--dpi-desync=fake", "--dpi-desync-repeats=11",
-                $"--dpi-desync-fake-quic=\"{quicFile}\"", "--new",
-                "--filter-udp=50000-50100", "--filter-l7=discord,stun", "--dpi-desync=fake", "--dpi-desync-repeats=6", "--new",
-                "--filter-tcp=80", $"--hostlist=\"{listGeneral}\"", "--dpi-desync=fake,fakedsplit", "--dpi-desync-autottl=2", "--dpi-desync-fooling=md5sig", "--new",
-                "--filter-tcp=443", $"--hostlist=\"{listGeneral}\"", "--dpi-desync=fake,multidisorder", "--dpi-desync-split-pos=1,midsld",
-                "--dpi-desync-repeats=11", "--dpi-desync-fooling=md5sig", "--dpi-desync-fake-tls-mod=rnd,dupsid,sni=www.google.com", "--new",
-                "--filter-udp=443", $"--ipset=\"{ipsetCloudflare}\"", "--dpi-desync=fake", "--dpi-desync-repeats=11",
-                $"--dpi-desync-fake-quic=\"{quicFile}\"", "--new",
-                "--filter-tcp=80", $"--ipset=\"{ipsetCloudflare}\"", "--dpi-desync=fake,fakedsplit", "--dpi-desync-autottl=2",
-                "--dpi-desync-fooling=md5sig", "--new",
-                "--filter-tcp=443", $"--ipset=\"{ipsetCloudflare}\"", "--dpi-desync=fake,multidisorder", "--dpi-desync-split-pos=1,midsld",
-                "--dpi-desync-repeats=11", "--dpi-desync-fooling=md5sig"
-            });
+    {
+        wfTcp,
+        wfUdp,
+
+        $"--filter-udp=443",
+        $"--hostlist=\"{listGeneral}\"",
+        "--dpi-desync=fake",
+        "--dpi-desync-repeats=6",
+        $"--dpi-desync-fake-quic=\"{quicFile}\"",
+        "--new",
+
+        "--filter-udp=50000-50100",
+        "--filter-l7=discord,stun",
+        "--dpi-desync=fake",
+        "--dpi-desync-repeats=6",
+        "--new",
+
+        "--filter-tcp=80",
+        $"--hostlist=\"{listGeneral}\"",
+        "--dpi-desync=fake,split2",
+        "--dpi-desync-autottl=2",
+        "--dpi-desync-fooling=md5sig",
+        "--new",
+
+        "--filter-tcp=443",
+        $"--hostlist=\"{listGeneral}\"",
+        "--dpi-desync=split2",
+        "--dpi-desync-repeats=2",
+        "--dpi-desync-split-seqovl=681",
+        "--dpi-desync-split-pos=1",
+        "--dpi-desync-fooling=badseq,hopbyhop2",
+        $"--dpi-desync-split-seqovl-pattern=\"{tlsPattern}\"",
+        "--new",
+
+        "--filter-udp=443",
+        $"--ipset=\"{ipsetAll}\"",
+        "--dpi-desync=fake",
+        "--dpi-desync-repeats=6",
+        $"--dpi-desync-fake-quic=\"{quicFile}\"",
+        "--new",
+
+        "--filter-tcp=80",
+        $"--ipset=\"{ipsetAll}\"",
+        "--dpi-desync=fake,split2",
+        "--dpi-desync-autottl=2",
+        "--dpi-desync-fooling=md5sig",
+        "--new",
+
+        "--filter-tcp=443" + (isGameFilterEnabled ? $",{gameFilter}" : ""),
+        $"--ipset=\"{ipsetAll}\"",
+        "--dpi-desync=split2",
+        "--dpi-desync-split-seqovl=681",
+        "--dpi-desync-split-pos=1",
+        "--dpi-desync-fooling=badseq,hopbyhop2",
+        $"--dpi-desync-split-seqovl-pattern=\"{tlsPattern}\"",
+        "--new",
+
+        isGameFilterEnabled
+            ? $"--filter-udp={gameFilter} --ipset=\"{ipsetAll}\" --dpi-desync=fake --dpi-desync-autottl=2 --dpi-desync-repeats=12 --dpi-desync-any-protocol=1 --dpi-desync-fake-unknown-udp=\"{quicFile}\" --dpi-desync-cutoff=n2"
+            : ""
+    });
 
             winwsProcess = new Process
             {
@@ -146,7 +204,8 @@ namespace AutoZapert
                     Arguments = args,
                     CreateNoWindow = true,
                     UseShellExecute = false
-                }
+                },
+                EnableRaisingEvents = true
             };
 
             try
@@ -202,9 +261,10 @@ namespace AutoZapert
 
         private void SetupTrayIcon()
         {
+            string iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"icon.ico");
             trayIcon = new Forms.NotifyIcon
             {
-                Icon = new Drawing.Icon("icon.ico"),
+                Icon = new Drawing.Icon(iconPath),
                 Visible = true,
                 Text = "AutoZapert"
             };

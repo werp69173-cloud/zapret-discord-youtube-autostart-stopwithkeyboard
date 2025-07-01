@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "AutoZapret"
-#define MyAppVersion "1.6.6."
+#define MyAppVersion "1.8.1"
 #define MyAppPublisher "Elka Micro"
 #define MyAppURL "https://github.com/tima03"
 #define MyAppExeName "AutoZapert.exe"

@@ -5,6 +5,7 @@ namespace AutoZapert
 {
     public partial class App : Application
     {
+
         protected override void OnStartup(StartupEventArgs e)
         {
             // Глобальная обработка непойманных исключений
@@ -43,5 +44,32 @@ namespace AutoZapert
 
             base.OnStartup(e);
         }
+        protected override void OnExit(ExitEventArgs e)
+        {
+            base.OnExit(e);
+            try
+            {
+                // Попытка остановить winws при ошибке в UI-потоке
+                (Application.Current.MainWindow as MainWindow)?.StopWinws();
+            }
+            catch (Exception ex)
+            {
+                System.IO.File.AppendAllText("error.log", $"[StopWinws Error] {DateTime.Now}: {ex}\n");
+            }
+        }
+
+        private void Application_Exit(object sender, ExitEventArgs e)
+        {
+            try
+            {
+                // Попытка остановить winws при ошибке в UI-потоке
+                (Application.Current.MainWindow as MainWindow)?.StopWinws();
+            }
+            catch (Exception ex)
+            {
+                System.IO.File.AppendAllText("error.log", $"[StopWinws Error] {DateTime.Now}: {ex}\n");
+            }
+        }
+
     }
 }

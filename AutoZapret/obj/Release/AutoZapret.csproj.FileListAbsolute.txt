@@ -13,3 +13,4 @@ D:\AutoZapert\AutoZapret\obj\Release\AutoZapret.csproj.GenerateResource.cache
 D:\AutoZapert\AutoZapret\obj\Release\AutoZapret.csproj.CoreCompileInputs.cache
 D:\AutoZapert\AutoZapret\obj\Release\AutoZapert.exe
 D:\AutoZapert\AutoZapret\obj\Release\AutoZapert.pdb
+D:\AutoZapert\AutoZapret\obj\Release\AutoZapert.exe.config
