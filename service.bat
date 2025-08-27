@@ -31,7 +31,6 @@ echo 1. Install Service
 echo 2. Remove Services
 echo 3. Check Service Status
 echo 4. Run Diagnostics
-echo 5. Check Updates
 echo 0. Exit
 set /p menu_choice=Enter choice (0-5): 
 
