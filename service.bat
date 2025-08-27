@@ -9,7 +9,7 @@ if "%~1"=="status_zapret" (
 )
 
 if "%~1"=="check_updates" (
-    call :service_check_updates soft
+
     exit /b
 )
 
